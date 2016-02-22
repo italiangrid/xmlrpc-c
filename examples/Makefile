@@ -15,8 +15,8 @@ include $(BLDDIR)/config.mk
 
 default: all
 
-CFLAGS_ALL = $(CFLAGS_PERSONAL) $(CFLAGS) $(CADD)
-LDFLAGS_ALL = $(LDFLAGS_PERSONAL) $(LDFLAGS) $(LADD)
+CFLAGS += $(CFLAGS_PERSONAL) $(CADD)
+LDFLAGS += $(LDFLAGS_PERSONAL) $(LADD)
 
 # If this were a real application, working from an installed copy of
 # Xmlrpc-c, XMLRPC_C_CONFIG would just be 'xmlrpc-c-config'.  It would be
@@ -32,7 +32,6 @@ CLIENTPROGS = \
 
 ifeq ($(MUST_BUILD_CURL_CLIENT),yes)
   ifneq ($(MSVCRT),yes)
-    CLIENTPROGS += curl_client
     CLIENTPROGS += interrupted_client
   endif
 endif
@@ -103,22 +102,22 @@ $(BLDDIR)/examples/cpp:
 	mkdir $@
 
 $(CLIENTPROGS):%:%.o
-	$(CCLD) -o $@ $^ $(LIBS_CLIENT) $(LDFLAGS_ALL)
+	$(CCLD) -o $@ $^ $(LIBS_CLIENT) $(LDFLAGS)
 
 $(SERVERPROGS_CGI):%.cgi:%_cgi.o
-	$(CCLD) -o $@ $^ $(LIBS_SERVER_CGI) $(LDFLAGS_ALL)
+	$(CCLD) -o $@ $^ $(LIBS_SERVER_CGI) $(LDFLAGS)
 
 $(SERVERPROGS_ABYSS):%:%.o
-	$(CCLD) -o $@ $^ $(LIBS_SERVER_ABYSS) $(LDFLAGS_ALL)
+	$(CCLD) -o $@ $^ $(LIBS_SERVER_ABYSS) $(LDFLAGS)
 
 $(BASIC_PROGS):%:%.o
-	$(CCLD) -o $@ $^ $(LIBS_BASE) $(LDFLAGS_ALL)
+	$(CCLD) -o $@ $^ $(LIBS_BASE) $(LDFLAGS) 
 
 
 OBJECTS = $(patsubst %,%.o,$(patsubst %.cgi,%_cgi,$(PROGS)))
 
 $(OBJECTS):%.o:%.c
-	$(CC) -c $(INCLUDES) $(CFLAGS_ALL) $<
+	$(CC) -c $(INCLUDES) $(CFLAGS) $<
 
 # config.h and xmlrpc_amconfig.h just describe the build environment.
 # We use them so that the example programs will build in users'

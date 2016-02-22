@@ -5,9 +5,6 @@
 
    This sends the RPC to the server running on the local system ("localhost"),
    HTTP Port 8080.
-
-   This program uses the Xmlrpc-c global client, which uses the default
-   client XML transport.
 */
 
 #include <stdlib.h>
@@ -50,7 +47,7 @@ main(int           const argc,
     /* Initialize our error-handling environment. */
     xmlrpc_env_init(&env);
 
-    /* Create the global XML-RPC client object. */
+    /* Start up our XML-RPC client library. */
     xmlrpc_client_init2(&env, XMLRPC_CLIENT_NO_FLAGS, NAME, VERSION, NULL, 0);
     dieIfFaultOccurred(&env);
 

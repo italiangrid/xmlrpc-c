@@ -22,7 +22,9 @@ INCLUDES = \
 
 all: xmlrpc_transport
 
-CLIENT_LDLIBS += $(SOCKETLIBOPT) $(THREAD_LIBS)
+ifeq ($(MSVCRT),yes)
+  CLIENT_LDLIBS += -lws2_32 -lwsock32 -lpthread
+endif
 
 UTIL_OBJS = \
   casprintf.o \

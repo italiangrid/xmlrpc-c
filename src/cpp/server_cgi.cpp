@@ -24,11 +24,11 @@
 #include <memory>
 #include <stdio.h>
 
-using namespace std;
-
 #include "xmlrpc-c/girerr.hpp"
 using girerr::throwf;
 #include "xmlrpc-c/server_cgi.hpp"
+
+using namespace std;
 
 
 
@@ -37,13 +37,13 @@ namespace {
 class httpInfo {
 
 public:
-    string       requestMethod;
-    bool         contentTypePresent;
-    string       contentType;
+    string requestMethod;
+    bool contentTypePresent;
+    string contentType;
     unsigned int contentLength;
-    bool         contentLengthPresent;
-    bool         authCookiePresent;
-    string       authCookie;
+    bool contentLengthPresent;
+    bool authCookiePresent;
+    string authCookie;
 
     httpInfo() {
 
@@ -86,28 +86,22 @@ public:
     }
 };
 
-}  // unnamed namespace
 
 
-
-namespace {
-
-class HttpError {
+class httpError {
 
 public:
 
-    int    const code;
+    int const code;
     string const msg;
     
-    HttpError(int    const code,
+    httpError(int    const code,
               string const& msg) :
-        code(code),
-        msg(msg)
-    {}
+        code(code), msg(msg) {}
 };
 
 
-} // unnamed namespace
+} // namespace
 
 
 
@@ -132,6 +126,7 @@ struct serverCgi_impl {
     void
     tryToProcessCall();
 };
+
 
 
 
@@ -283,7 +278,7 @@ processCall2(const registry * const  registryP,
         try {
             registryP->processCall(callXml, &responseXml);
         } catch (exception const& e) {
-            throw(HttpError(500, e.what()));
+            throw(httpError(500, e.what()));
         }
         
         writeNormalHttpResp(respFileP, sendCookie, authCookie, responseXml);
@@ -295,7 +290,7 @@ processCall2(const registry * const  registryP,
 
 static void
 sendHttpErrorResp(FILE *    const  fileP,
-                  HttpError const& e) {
+                  httpError const& e) {
 
     setModeBinary(fileP);
 
@@ -322,17 +317,17 @@ serverCgi_impl::tryToProcessCall() {
     httpInfo httpInfo;
 
     if (httpInfo.requestMethod != string("POST"))
-        throw(HttpError(405, "Method must be POST"));
+        throw(httpError(405, "Method must be POST"));
 
     if (!httpInfo.contentTypePresent)
-        throw(HttpError(400, "Must have content-type header"));
+        throw(httpError(400, "Must have content-type header"));
 
     if (httpInfo.contentType != string("text/xml"))
-        throw(HttpError(400, string("ContentType must be 'text/xml', not '") +
+        throw(httpError(400, string("ContentType must be 'text/xml', not '") +
                         httpInfo.contentType + string("'")));
     
     if (!httpInfo.contentLengthPresent)
-        throw(HttpError(411, "Content-length required"));
+        throw(httpError(411, "Content-length required"));
               
     processCall2(this->registryP, stdin, httpInfo.contentLength,
                  httpInfo.authCookiePresent, httpInfo.authCookie, stdout);
@@ -349,7 +344,7 @@ serverCgi::processCall() {
 -----------------------------------------------------------------------------*/
     try {
         this->implP->tryToProcessCall();
-    } catch (HttpError const& e) {
+    } catch (httpError const& e) {
         sendHttpErrorResp(stdout, e);
     }
 }

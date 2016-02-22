@@ -93,8 +93,6 @@ RequestInit(TSession * const sessionP,
 
     sessionP->validRequest = false;  /* Don't have valid request yet */
 
-    sessionP->failureReason = NULL;
-
     time(&sessionP->date);
 
     sessionP->connP = connectionP;
@@ -105,10 +103,6 @@ RequestInit(TSession * const sessionP,
     sessionP->chunkedwritemode = false;
 
     sessionP->continueRequired = false;
-
-    sessionP->requestIsChunked = false;
-
-    sessionP->chunkState.position = CHUNK_ATHEADER;
 
     ListInit(&sessionP->cookies);
     ListInit(&sessionP->ranges);
@@ -170,7 +164,7 @@ getLineInBuffer(TConn *       const connectionP,
                 const char ** const errorP) {
 /*----------------------------------------------------------------------------
    Get a line into the connection's read buffer, starting at position
-   'lineStart', if there isn't one already there.  'lineStart' is either
+   'lineStart', if there isn't one already there.   'lineStart' is either
    within the buffer or just after it.
 
    Read the channel until we get a full line, except fail if we don't get
@@ -190,18 +184,12 @@ getLineInBuffer(TConn *       const connectionP,
         else {
             lfPos = firstLfPos(connectionP, lineStart);
             if (!lfPos) {
-                if (ConnBufferSpace(connectionP) < 1)
-                    xmlrpc_asprintf(errorP, "HTTP request header does not "
-                                    "fit in the server's connection buffer.");
-                else {
-                    const char * readError;
-                    ConnRead(connectionP, timeLeft, NULL,
-                             &timedOut, &readError);
-                    if (readError) {
-                        xmlrpc_asprintf(errorP, "Failed to read from the "
-                                        "connection.  %s", readError);
-                        xmlrpc_strfree(readError);
-                    }
+                const char * readError;
+                ConnRead(connectionP, timeLeft, NULL, &timedOut, &readError);
+                if (readError) {
+                    xmlrpc_asprintf(errorP, "Failed to read from the "
+                                    "connection.  %s", readError);
+                    xmlrpc_strfree(readError);
                 }
             }
         }
@@ -259,7 +247,7 @@ getRestOfField(TConn *       const connectionP,
 /*----------------------------------------------------------------------------
    Given that the read buffer for connection *connectionP contains (at
    its current read position) the first line of an HTTP header field, which
-   ends at position 'lineEnd', find or get the rest of it.
+   ends at position 'lineEnd', find the rest of it.
 
    Some or all of the rest of the field may be in the buffer already;
    we read more from the connection as necessary, but not if it takes past
@@ -1123,17 +1111,6 @@ processField(const char *  const fieldName,
     } else if (xmlrpc_streq(fieldName, "expect")) {
         if (xmlrpc_strcaseeq(fieldValue, "100-continue"))
             sessionP->continueRequired = true;
-    } else if (xmlrpc_streq(fieldName, "transfer-encoding")) {
-        if (xmlrpc_strcaseeq(fieldValue, "chunked"))
-            sessionP->requestIsChunked = true;
-        else if (xmlrpc_strcaseeq(fieldValue, "identity")) {
-            // Same as no transfer-encoding specified
-        } else {
-            xmlrpc_asprintf(errorP, "Server does not know '%s' transfer "
-                            "encoding.  It knows only 'chunked' and "
-                            "'identity'", fieldValue);
-            *httpErrorCodeP = 501;
-        }
     }
 }
 
@@ -1280,11 +1257,11 @@ RequestRead(TSession *    const sessionP,
 
 
 
-const char *
+char *
 RequestHeaderValue(TSession *   const sessionP,
                    const char * const name) {
 
-    return TableValue(&sessionP->requestHeaderFields, name);
+    return (TableFind(&sessionP->requestHeaderFields, name));
 }
 
 
@@ -1362,48 +1339,33 @@ RequestAuth(TSession *   const sessionP,
    session to 'user' so that a future SessionGetRequestInfo can get it.
 -----------------------------------------------------------------------------*/
     bool authorized;
-    const char * authValue;
+    char * authHdrPtr;
 
-    authValue = RequestHeaderValue(sessionP, "authorization");
-    if (authValue) {
-        char * const valueBuffer = malloc(strlen(authValue));
-            /* A buffer we can mangle as we parse the authorization: value */
+    authHdrPtr = RequestHeaderValue(sessionP, "authorization");
+    if (authHdrPtr) {
+        const char * authType;
+        NextToken((const char **)&authHdrPtr);
+        GetTokenConst(&authHdrPtr, &authType);
+        if (authType) {
+            if (xmlrpc_strcaseeq(authType, "basic")) {
+                const char * userPass;
+                char userPassEncoded[80];
 
-        if (!authValue)
-            /* Should return error, but we have no way to do that */
-            authorized = false;
-        else {
-            const char * authType;
-            char * authHdrPtr;
+                NextToken((const char **)&authHdrPtr);
 
-            strcpy(valueBuffer, authValue);
-            authHdrPtr = &valueBuffer[0];
+                xmlrpc_asprintf(&userPass, "%s:%s", user, pass);
+                xmlrpc_base64Encode(userPass, userPassEncoded);
+                xmlrpc_strfree(userPass);
 
-            NextToken((const char **)&authHdrPtr);
-            GetTokenConst(&authHdrPtr, &authType);
-            if (authType) {
-                if (xmlrpc_strcaseeq(authType, "basic")) {
-                    const char * userPass;
-                    char userPassEncoded[80];
-    
-                    NextToken((const char **)&authHdrPtr);
-    
-                    xmlrpc_asprintf(&userPass, "%s:%s", user, pass);
-                    xmlrpc_base64Encode(userPass, userPassEncoded);
-                    xmlrpc_strfree(userPass);
-    
-                    if (xmlrpc_streq(authHdrPtr, userPassEncoded)) {
-                        sessionP->requestInfo.user = xmlrpc_strdupsol(user);
-                        authorized = true;
-                    } else
-                        authorized = false;
+                if (xmlrpc_streq(authHdrPtr, userPassEncoded)) {
+                    sessionP->requestInfo.user = xmlrpc_strdupsol(user);
+                    authorized = true;
                 } else
                     authorized = false;
             } else
                 authorized = false;
-
-            free(valueBuffer);
-        }
+        } else
+            authorized = false;
     } else
         authorized = false;
 

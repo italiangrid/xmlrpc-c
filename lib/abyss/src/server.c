@@ -3,18 +3,17 @@
 #define _XOPEN_SOURCE 600  /* Make sure strdup() is in <string.h> */
 #define _BSD_SOURCE  /* Make sure setgroups()is in <grp.h> */
 
-#include "xmlrpc_config.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#if !MSVCRT
+#ifndef _WIN32
   #include <grp.h>
 #endif
 
+#include "xmlrpc_config.h"
 #include "bool.h"
 #include "girmath.h"
 #include "mallocvar.h"
@@ -32,7 +31,7 @@
 #include "chanswitch.h"
 #include "channel.h"
 #include "socket.h"
-#if MSVCRT
+#ifdef _WIN32
   #include "socket_win.h"
 #else
   #include "socket_unix.h"
@@ -79,7 +78,7 @@ ServerResetTerminate(TServer * const serverP) {
 
 static void
 initUnixStuff(struct _TServer * const srvP) {
-#if !MSVCRT
+#ifndef _WIN32
     srvP->pidfileP = NULL;
     srvP->uid = srvP->gid = -1;
 #endif
@@ -314,7 +313,7 @@ createSwitchFromOsSocket(TOsSocket      const osSocket,
                          TChanSwitch ** const chanSwitchPP,
                          const char **  const errorP) {
 
-#if MSVCRT
+#ifdef _WIN32
     ChanSwitchWinCreateWinsock(osSocket, chanSwitchPP, errorP);
 #else
     ChanSwitchUnixCreateFd(osSocket, chanSwitchPP, errorP);
@@ -329,7 +328,7 @@ createChannelFromOsSocket(TOsSocket     const osSocket,
                           void **       const channelInfoPP,
                           const char ** const errorP) {
 
-#if MSVCRT
+#ifdef _WIN32
     ChannelWinCreateWinsock(osSocket, channelPP,
                             (struct abyss_win_chaninfo**)channelInfoPP,
                             errorP);
@@ -827,7 +826,7 @@ createSwitchFromPortNum(unsigned short const portNumber,
                         TChanSwitch ** const chanSwitchPP,
                         const char **  const errorP) {
 
-#if MSVCRT
+#ifdef _WIN32
     ChanSwitchWinCreate(portNumber, chanSwitchPP, errorP);
 #else
     ChanSwitchUnixCreate(portNumber, chanSwitchPP, errorP);
@@ -1087,7 +1086,7 @@ interruptChannels(outstandingConnList * const outstandingConnListP) {
 
 
 
-#if !MSVCRT
+#ifndef _WIN32
 void
 ServerHandleSigchld(pid_t const pid) {
 
@@ -1520,7 +1519,7 @@ ServerDaemonize(TServer * const serverP) {
 -----------------------------------------------------------------------------*/
     struct _TServer * const srvP = serverP->srvP;
 
-#if !MSVCRT
+#ifndef _WIN32
     /* Become a daemon */
     switch (fork()) {
     case 0:
@@ -1564,7 +1563,7 @@ ServerDaemonize(TServer * const serverP) {
         FileWrite(srvP->pidfileP, z, strlen(z));
         FileClose(srvP->pidfileP);
     }
-#endif  /* MSVCRT */
+#endif  /* _WIN32 */
 }
 
 

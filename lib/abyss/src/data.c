@@ -431,60 +431,52 @@ void TableFree(TTable * const t)
 
 
 
-static void
-tableFindIndex(TTable *       const tableP,
-               const char *   const targetName,
-               bool *         const foundP,
-               unsigned int * const indexP) {
-/*----------------------------------------------------------------------------
-   Find an entry in table *tableP that has key (name) 'name'.
+bool
+TableFindIndex(TTable *     const t,
+               const char * const name,
+               uint16_t *   const index) {
 
-   Return *foundP == true iff such an entry is in the table.
+    uint16_t i,hash=Hash16(name);
 
-   Return the index of the found entry, if any, as *indexP.
------------------------------------------------------------------------------*/
-    if (tableP->item) {
-        uint16_t const targetHash = Hash16(targetName);
+    if ((t->item) && (t->size>0) && (*index<t->size))
+    {
+        for (i=*index;i<t->size;i++)
+            if (hash==t->item[i].hash)
+                if (xmlrpc_streq(t->item[i].name,name))
+                {
+                    *index=i;
+                    return true;
+                };
+    };
 
-        unsigned int i;
-
-        for (i = 0; i < tableP->size; ++i) {
-            if (tableP->item[i].hash == targetHash) {
-                if (xmlrpc_streq(tableP->item[i].name, targetName)) {
-                    *indexP = i;
-                    *foundP = true;
-                    return;
-                }
-            }
-        }
-    }
-    *foundP = false;
+    return false;
 }
 
 
 
 bool
-TableAddReplace(TTable *     const tableP,
+TableAddReplace(TTable *     const t,
                 const char * const name,
                 const char * const value) {
 
-    unsigned int tableIndex;
-    bool found;
+    uint16_t i=0;
 
-    tableFindIndex(tableP, name, &found, &tableIndex);
-
-    if (found) {
-        free(tableP->item[tableIndex].value);
+    if (TableFindIndex(t,name,&i))
+    {
+        free(t->item[i].value);
         if (value)
-            tableP->item[tableIndex].value = strdup(value);
-        else {
-            free(tableP->item[tableIndex].name);
-            if (--tableP->size > 0)
-                tableP->item[tableIndex] = tableP->item[tableP->size];
-        }
+            t->item[i].value=strdup(value);
+        else
+        {
+            free(t->item[i].name);
+            if (--t->size>0)
+                t->item[i]=t->item[t->size];
+        };
+
         return true;
-    } else
-        return TableAdd(tableP, name, value);
+    }
+    else
+        return TableAdd(t,name,value);
 }
 
 
@@ -519,23 +511,17 @@ TableAdd(TTable *     const t,
 
 
 
-const char *
-TableValue(TTable *     const tableP,
-           const char * const name) {
+char *
+TableFind(TTable *     const t,
+          const char * const name) {
 
-    unsigned int tableIndex;
-        /* Index into the table of the entry with name 'name'.  */
-    bool found;
+    uint16_t i=0;
 
-    tableFindIndex(tableP, name, &found, &tableIndex);
-
-    if (found)
-        return tableP->item[tableIndex].value;
+    if (TableFindIndex(t,name,&i))
+        return t->item[i].value;
     else
         return NULL;
 }
-
-
 
 /*********************************************************************
 ** Pool

@@ -52,7 +52,7 @@ interpretCurlMultiError(const char ** const descriptionP,
 
 struct curlMulti {
     CURLM * curlMultiP;
-    struct lock * lockP;
+    lock * lockP;
         /* Hold this lock while accessing or using *curlMultiP.  You're
            using the multi manager whenever you're calling a Curl
            library multi manager function.
@@ -183,7 +183,6 @@ curlMulti_addHandle(xmlrpc_env *       const envP,
         xmlrpc_strfree(reason);
     }
 }
-
 
 
 void

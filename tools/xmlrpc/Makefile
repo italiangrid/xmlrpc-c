@@ -36,7 +36,9 @@ DUMPVALUE = blddir/tools/lib/dumpvalue.o
 
 XMLRPC_OBJS = xmlrpc.o $(DUMPVALUE)
 
-CLIENT_LDLIBS += $(SOCKETLIBOPT) $(THREAD_LIBS)
+ifeq ($(MSVCRT),yes)
+  CLIENT_LDLIBS += -lws2_32 -lwsock32 -lpthread
+endif
 
 xmlrpc: $(XMLRPC_OBJS) $(CLIENT_LIBS_DEP) $(UTILS)
 	$(CCLD) -o $@ $(LDFLAGS_ALL) $(XMLRPC_OBJS) $(UTILS) $(CLIENT_LDLIBS)

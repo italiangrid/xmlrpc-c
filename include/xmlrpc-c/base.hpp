@@ -148,9 +148,6 @@ public:
     std::string
     crlfValue() const;
 
-    void
-    validate() const;
-
     operator std::string() const;
 
     std::string cvalue() const;

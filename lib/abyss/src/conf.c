@@ -35,20 +35,19 @@
 #define _XOPEN_SOURCE 600   /* For strdup() */
 #define _BSD_SOURCE  /* For xmlrpc_strcaseeq */
 
-#include "xmlrpc_config.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#if MSVCRT
+#if defined(_WIN32)
 #include <direct.h>
 #endif
 
-#if !MSVCRT
+#ifndef _WIN32
 #include <pwd.h>
 #endif
 
+#include "xmlrpc_config.h"
 #include "bool.h"
 #include "xmlrpc-c/string_int.h"
 #include "xmlrpc-c/abyss.h"
@@ -263,7 +262,7 @@ chdirx(const char * const newdir,
 static void
 parseUser(const char *      const p, 
           struct _TServer * const srvP) {
-#if MSVCRT
+#ifdef _WIN32
     /* *srvP has no 'uid' or 'gid' member; system has no getpwnam() */
     TraceMsg("User option ignored");
 #else

@@ -12,13 +12,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "xmlrpc_config.h"
 #include "bool.h"
 #include "int.h"
 #include "mallocvar.h"
 #include "xmlrpc-c/util_int.h"
 #include "xmlrpc-c/abyss.h"
-#if MSVCRT
+#ifdef _WIN32
   #include "socket_win.h"
 #else
   #include "socket_unix.h"
@@ -30,7 +29,7 @@
 static void
 socketOsInit(const char ** const errorP) {
 
-#if MSVCRT
+#ifdef _WIN32
     SocketWinInit(errorP);
 #else
     SocketUnixInit(errorP);
@@ -42,7 +41,7 @@ socketOsInit(const char ** const errorP) {
 static void
 socketOsTerm(void) {
 
-#if MSVCRT
+#ifdef _WIN32
     SocketWinTerm();
 #else
     SocketUnixTerm();

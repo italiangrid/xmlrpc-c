@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <float.h>
-#include <math.h>
 
 #include "xmlrpc-c/util.h"
 #include "xmlrpc-c/util_int.h"
@@ -90,8 +89,6 @@ floatWhole(double   const value,
 /*----------------------------------------------------------------------------
    Format into *formattedP the whole part of 'value', i.e. the part before the
    decimal point.
-
-   'value' is a finite number.
 
    Return as *formattedAmountP the whole amount; e.g. if 'value' is 35.2,
    we return *formattedAmountP = 35.
@@ -206,62 +203,13 @@ floatFraction(double   const value,
 
 
 
-static void
-floatUnsigned(double   const value,
-              buffer * const formattedP) {
-/*----------------------------------------------------------------------------
-   Serialize 'value', assuming it is positive, and append it to *formattedP,
-   without a sign.
------------------------------------------------------------------------------*/
-    assert(value >= 0.0);
-
-    if (value >= 1.0) {
-        double wholePart;
-        double wholePrecision;
-
-        floatWhole(value, formattedP, &wholePart, &wholePrecision);
-
-        if (wholePrecision >= 1.0) {
-            /* We ran out of precision before we got to the decimal
-               point 
-            */
-        } else {
-            double const fractionPart = value - wholePart;
-
-            if (fractionPart > wholePrecision) {
-                bufferConcat(formattedP, '.');
-
-                floatFractionPart(fractionPart, wholePrecision,
-                                  formattedP);
-            }
-        }    
-    } else {
-        bufferConcat(formattedP, '0');
-
-        if (value > 0.0) {
-            bufferConcat(formattedP, '.');
-            floatFraction(value, formattedP);
-        }
-    }
-}
-
-
-
 void
 xmlrpc_formatFloat(xmlrpc_env *  const envP,
                    double        const value,
                    const char ** const formattedP) {
-/*----------------------------------------------------------------------------
-   Format the value 'value' in XML-RPC - just the characters that represent
-   the numbers - none of the XML markup.  E.g. "1.234".
 
-   Assume 'value' is finite, as there is no such thing as an infinite or
-   NaN value in XML-RPC.
------------------------------------------------------------------------------*/
     double absvalue;
     buffer formatted;
-
-    assert(finite(value));
 
     bufferInit(&formatted);
 
@@ -271,13 +219,35 @@ xmlrpc_formatFloat(xmlrpc_env *  const envP,
     } else
         absvalue = value;
 
-    floatUnsigned(absvalue, &formatted);
+    if (absvalue >= 1.0) {
+        double wholePart;
+        double wholePrecision;
 
+        floatWhole(absvalue, &formatted, &wholePart, &wholePrecision);
+
+        if (wholePrecision >= 1.0) {
+            /* We ran out of precision before we got to the decimal point */
+        } else {
+            double const fractionPart = absvalue - wholePart;
+
+            if (fractionPart > wholePrecision) {
+                bufferConcat(&formatted, '.');
+
+                floatFractionPart(fractionPart, wholePrecision, &formatted);
+            }
+        }    
+    } else {
+        bufferConcat(&formatted, '0');
+
+        if (absvalue > 0.0) {
+            bufferConcat(&formatted, '.');
+            floatFraction(absvalue, &formatted);
+        }
+    }
     bufferConcat(&formatted, '\0');
 
     if (formatted.bytes == NULL)
-        xmlrpc_faultf(envP, "Couldn't allocate memory to format %g",
-                      value);
+        xmlrpc_faultf(envP, "Couldn't allocate memory to format %g", value);
     else
         *formattedP = formatted.bytes;
 }

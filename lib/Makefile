@@ -9,10 +9,7 @@ include $(BLDDIR)/config.mk
 
 # Build up SUBDIRS:
 SUBDIRS = 
-SUBDIRS += util libutil
-ifeq ($(ENABLE_CPLUSPLUS),yes)
-  SUBDIRS += libutil++
-endif
+SUBDIRS += util libutil libutil++
 ifeq ($(ENABLE_ABYSS_SERVER),yes)
   SUBDIRS += abyss
   ifeq ($(ENABLE_CPLUSPLUS),yes)
@@ -42,7 +39,7 @@ all: $(SUBDIRS:%=%/all)
 # (See top level make file for details)
 abyss/all curl_transport/all: $(BLDDIR)/version.h
 abyss++/all: abyss/all
-abyss/all expat/all libutil++/all: libutil/all
+abyss/all expat/all: libutil/all
 
 clean: $(SUBDIRS:%=%/clean) clean-common
 

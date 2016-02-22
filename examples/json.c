@@ -83,9 +83,9 @@ int
 main(int argc, const char *argv[]) {
 
     xmlrpc_env env;
-    char buf[65536];
+    char buf[1024];
     xmlrpc_value * valP;
-    size_t bytesReadCt;
+    size_t bytesRead;
 
     xmlrpc_env_init(&env);
 
@@ -95,8 +95,8 @@ main(int argc, const char *argv[]) {
         exit(1);
     }
     
-    bytesReadCt = fread(buf, 1, sizeof(buf)-1, stdin);
-    buf[bytesReadCt] = '\0';
+    bytesRead = fread(buf, 1, sizeof(buf), stdin);
+    buf[bytesRead] = '\0';
         
     valP = xmlrpc_parse_json(&env, buf);
 
